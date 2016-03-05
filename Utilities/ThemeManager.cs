@@ -6,6 +6,7 @@ using log4net;
 using MissionPlanner.Controls;
 using System.IO;
 using System.Collections.Generic;
+using BrightIdeasSoftware;
 
 namespace MissionPlanner.Utilities
 {
@@ -40,6 +41,13 @@ namespace MissionPlanner.Utilities
             Test,
             Custom,
         }
+
+        // Initialize to the default theme (BurntKermit)
+        public static Color BGColor = Color.FromArgb(0x26, 0x27, 0x28);
+        public static Color ControlBGColor = Color.FromArgb(0x43, 0x44, 0x45);
+        public static Color TextColor = Color.White;
+        public static Color ButBG;
+        public static Color ButBorder;
 
         /// <summary>
         /// Change the current theme. Existing controls are not affected
@@ -685,8 +693,6 @@ mc:Ignorable=""d""
             }
         }
 
-        public static Color BGColor, ControlBGColor, TextColor, ButBG, ButBorder;
-
         private static void ApplyHighContrast(Control temp, int level)
         {
             unchecked
@@ -747,7 +753,7 @@ mc:Ignorable=""d""
                     DomainUpDown txt = (DomainUpDown) ctl;
                     txt.BorderStyle = BorderStyle.None;
                 }
-                else if (ctl.GetType() == typeof (GroupBox) || ctl.GetType() == typeof (UserControl))
+                else if (ctl.GetType() == typeof (GroupBox) || ctl.GetType() == typeof (UserControl) || ctl.GetType() == typeof(DataTreeListView))
                 {
                     ctl.BackColor = BGColor;
                     ctl.ForeColor = TextColor;
@@ -797,7 +803,7 @@ mc:Ignorable=""d""
                 }
                 else if (ctl.GetType() == typeof (RichTextBox))
                 {
-                    ctl.BackColor = ControlBGColor;
+                    ctl.BackColor = BGColor;
                     ctl.ForeColor = TextColor;
                     RichTextBox txtr = (RichTextBox) ctl;
                     txtr.BorderStyle = BorderStyle.None;
@@ -1014,10 +1020,12 @@ mc:Ignorable=""d""
                 }
                 else if (ctl.GetType() == typeof (RichTextBox))
                 {
-                    ctl.BackColor = ControlBGColor;
-                    ctl.ForeColor = TextColor;
+                    //ctl.BackColor = ControlBGColor;
+                    //ctl.ForeColor = TextColor;
                     RichTextBox txtr = (RichTextBox) ctl;
                     txtr.BorderStyle = BorderStyle.None;
+                    txtr.ForeColor = Color.WhiteSmoke;
+                    txtr.BackColor = ControlBGColor;
                 }
                 else if (ctl.GetType() == typeof (CheckedListBox))
                 {

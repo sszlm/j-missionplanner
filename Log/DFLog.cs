@@ -204,7 +204,7 @@ namespace MissionPlanner.Log
         // first valid gpstime
         DateTime gpsstarttime = DateTime.MinValue;
 
-        int msoffset = 0;
+        long msoffset = 0;
 
         public List<DFItem> ReadLog(Stream fn)
         {
@@ -299,7 +299,7 @@ namespace MissionPlanner.Log
                         {
                             try
                             {
-                                msoffset = int.Parse(items[indextimeus])/1000;
+                                msoffset = long.Parse(items[indextimeus])/1000;
                             }
                             catch
                             {
@@ -381,17 +381,24 @@ namespace MissionPlanner.Log
 
                         if (indextimems != -1)
                         {
-                            var ntime = long.Parse(items[indextimems]);
+                            long ntime = 0;
 
-                            if (timeus)
-                                ntime /= 1000;
-
-                            item.timems = (int) ntime;
-
-                            if (gpsstarttime != DateTime.MinValue)
+                            if (long.TryParse(items[indextimems], out ntime))
                             {
-                                item.time = gpsstarttime.AddMilliseconds(item.timems - msoffset);
-                                lasttime = item.time;
+                                if (timeus)
+                                    ntime /= 1000;
+
+                                item.timems = (int) ntime;
+
+                                if (gpsstarttime != DateTime.MinValue)
+                                {
+                                    item.time = gpsstarttime.AddMilliseconds(item.timems - msoffset);
+                                    lasttime = item.time;
+                                }
+                            }
+                            else
+                            {
+                                item.time = lasttime;
                             }
                         }
                         else
@@ -478,7 +485,14 @@ namespace MissionPlanner.Log
                 if (indextimems == -1 || indexweek == -1)
                     return DateTime.MinValue;
 
-                return gpsTimeToTime(int.Parse(items[indexweek]), int.Parse(items[indextimems])/1000.0);
+                try
+                {
+                    return gpsTimeToTime(int.Parse(items[indexweek]), long.Parse(items[indextimems]) / 1000.0);
+                }
+                catch 
+                {
+                    return DateTime.MinValue;
+                }
             }
 
             return DateTime.MinValue;

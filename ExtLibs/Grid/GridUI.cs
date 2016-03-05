@@ -78,6 +78,8 @@ namespace MissionPlanner
             public bool autotakeoff;
             public bool autotakeoff_RTL;
 
+            public decimal splitmission;
+
             public bool internals;
             public bool footprints;
             public bool advanced;
@@ -224,6 +226,7 @@ namespace MissionPlanner
             NUM_UpDownFlySpeed.Value = griddata.speed;
             CHK_toandland.Checked = griddata.autotakeoff;
             CHK_toandland_RTL.Checked = griddata.autotakeoff_RTL;
+            NUM_split.Value = griddata.splitmission;
 
             CHK_internals.Checked = griddata.internals;
             CHK_footprints.Checked = griddata.footprints;
@@ -270,6 +273,7 @@ namespace MissionPlanner
             griddata.usespeed = CHK_usespeed.Checked;
             griddata.autotakeoff = CHK_toandland.Checked;
             griddata.autotakeoff_RTL = CHK_toandland_RTL.Checked;
+            griddata.splitmission = NUM_split.Value;
 
             griddata.internals = CHK_internals.Checked;
             griddata.footprints = CHK_footprints.Checked;
@@ -392,6 +396,7 @@ namespace MissionPlanner
             plugin.Host.config["grid_dist"] = NUM_Distance.Value.ToString();
             plugin.Host.config["grid_overshoot1"] = NUM_overshoot.Value.ToString();
             plugin.Host.config["grid_overshoot2"] = NUM_overshoot2.Value.ToString();
+            plugin.Host.config["grid_leadin"] = NUM_leadin.Value.ToString();
             plugin.Host.config["grid_overlap"] = num_overlap.Value.ToString();
             plugin.Host.config["grid_sidelap"] = num_sidelap.Value.ToString();
             plugin.Host.config["grid_spacing"] = NUM_spacing.Value.ToString();
@@ -540,7 +545,7 @@ namespace MissionPlanner
         // Do Work
         private void domainUpDown1_ValueChanged(object sender, EventArgs e)
         {
-            if (CMB_camera.Text != "" && sender != NUM_Distance)
+            if (CMB_camera.Text != "")
                 doCalc();
 
             // new grid system test
@@ -623,7 +628,9 @@ namespace MissionPlanner
                 }
                 else
                 {
-                    strips++;
+                    if (item.Tag != "SM" && item.Tag != "ME")
+                        strips++;
+
                     if (CHK_markers.Checked)
                     {
                         var marker = new GMapMarkerWP(item, a.ToString()) { ToolTipText = a.ToString(), ToolTipMode = MarkerTooltipMode.OnMouseOver };
@@ -891,6 +898,9 @@ namespace MissionPlanner
                 // Imperial
                 inchpixel = (((viewheight / imageheight) * 100) * 0.393701).ToString("0.00 inches");
 
+                NUM_spacing.ValueChanged -= domainUpDown1_ValueChanged;
+                NUM_Distance.ValueChanged -= domainUpDown1_ValueChanged;
+
                 if (CHK_camdirection.Checked)
                 {
                     NUM_spacing.Value = (decimal)((1 - (overlap / 100.0f)) * viewheight);
@@ -901,7 +911,8 @@ namespace MissionPlanner
                     NUM_spacing.Value = (decimal)((1 - (overlap / 100.0f)) * viewwidth);
                     NUM_Distance.Value = (decimal)((1 - (sidelap / 100.0f)) * viewheight);
                 }
-
+                NUM_spacing.ValueChanged += domainUpDown1_ValueChanged;
+                NUM_Distance.ValueChanged += domainUpDown1_ValueChanged;
             }
             catch { return; }
         }
@@ -1066,6 +1077,12 @@ namespace MissionPlanner
 
                 if (CurrentGMapMarker != null)
                 {
+                    if (CurrentGMapMarkerIndex == -1)
+                    {
+                        isMouseDraging = false;
+                        return;
+                    }
+
                     PointLatLng pnew = map.FromLocalToLatLng(e.X, e.Y);
 
                     CurrentGMapMarker.Position = pnew;
@@ -1389,21 +1406,38 @@ namespace MissionPlanner
 
                 int wpsplit = (int)Math.Round(grid.Count / NUM_split.Value,MidpointRounding.AwayFromZero);
 
+                List<int> wpsplitstart = new List<int>();
+
                 for (int splitno = 0; splitno < NUM_split.Value; splitno++)
                 {
                     int wpstart = wpsplit * splitno;
+                    int wpend = wpsplit * (splitno + 1);
+
+                    while (wpstart != 0 && wpstart < grid.Count && grid[wpstart].Tag != "E")
+                    {
+                        wpstart++;
+                    }
+
+                    while (wpend < grid.Count && grid[wpend].Tag != "S")
+                    {
+                        wpend++;
+                    }
 
                     if (CHK_toandland.Checked)
                     {
                         if (plugin.Host.cs.firmware == MainV2.Firmwares.ArduCopter2)
                         {
-                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0,
+                            var wpno = plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0,
                                 (int) (30*CurrentState.multiplierdist));
+
+                            wpsplitstart.Add(wpno);
                         }
                         else
                         {
-                            plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0,
+                            var wpno = plugin.Host.AddWPtoList(MAVLink.MAV_CMD.TAKEOFF, 20, 0, 0, 0, 0, 0,
                                 (int) (30*CurrentState.multiplierdist));
+
+                            wpsplitstart.Add(wpno);
                         }
                     }
 
@@ -1412,7 +1446,6 @@ namespace MissionPlanner
                         plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_CHANGE_SPEED, 0,
                             (int) ((float) NUM_UpDownFlySpeed.Value/CurrentState.multiplierspeed), 0, 0, 0, 0, 0);
                     }
-
 
                     int i = 0;
                     grid.ForEach(plla =>
@@ -1424,7 +1457,7 @@ namespace MissionPlanner
                             return;
                         }
                         // skip after endpoint
-                        if (i >= (wpstart + wpsplit))
+                        if (i >= wpend)
                             return;
                         if (i > wpstart)
                         {
@@ -1449,13 +1482,13 @@ namespace MissionPlanner
                                 {
                                     if (rad_trigdist.Checked)
                                     {
-                                        if (plla.Tag == "S")
+                                        if (plla.Tag == "SM")
                                         {
                                             plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_SET_CAM_TRIGG_DIST,
                                                 (float) NUM_spacing.Value,
                                                 0, 0, 0, 0, 0, 0);
                                         }
-                                        else if (plla.Tag == "E")
+                                        else if (plla.Tag == "ME")
                                         {
                                             plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_SET_CAM_TRIGG_DIST, 0,
                                                 0, 0, 0, 0, 0, 0);
@@ -1467,11 +1500,6 @@ namespace MissionPlanner
                         else
                         {
                             AddWP(plla.Lng, plla.Lat, plla.Alt);
-                            if (rad_trigdist.Checked)
-                            {
-                                plugin.Host.AddWPtoList(MAVLink.MAV_CMD.DO_SET_CAM_TRIGG_DIST, (float) NUM_spacing.Value,
-                                    0, 0, 0, 0, 0, 0);
-                            }
                         }
                         ++i;
                     });
@@ -1504,6 +1532,18 @@ namespace MissionPlanner
                                 plugin.Host.cs.HomeLocation.Lat, 0);
                         }
                     }
+                }
+
+                if (NUM_split.Value > 1)
+                {
+                    int index = 0;
+                    foreach (var i in wpsplitstart)
+                    {
+                        // add do jump
+                        plugin.Host.InsertWP(index, MAVLink.MAV_CMD.DO_JUMP, i + wpsplitstart.Count + 1, 1, 0, 0, 0, 0, 0);
+                        index++;
+                    }
+                    
                 }
 
                 // Redraw the polygon in FP

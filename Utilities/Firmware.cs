@@ -62,16 +62,15 @@ namespace MissionPlanner.Utilities
             public string url2560_2;
             public string urlpx4v1;
             public string urlpx4v2;
+            public string urlpx4v4;
             public string urlvrbrainv40;
             public string urlvrbrainv45;
             public string urlvrbrainv50;
             public string urlvrbrainv51;
             public string urlvrbrainv52;
-            public string urlvrherov10;
+            public string urlvrcorev10;
             public string urlvrubrainv51;
             public string urlvrubrainv52;
-            public string urlvrgimbalv20;
-            public string urlvrugimbalv11;
             public string name;
             public string desc;
             public int k_format_version;
@@ -182,16 +181,15 @@ namespace MissionPlanner.Utilities
             string url2560_2 = "";
             string px4 = "";
             string px4v2 = "";
+            string px4v4 = "";
             string vrbrainv40 = "";
             string vrbrainv45 = "";
             string vrbrainv50 = "";
             string vrbrainv51 = "";
             string vrbrainv52 = "";
-            string vrherov10 = "";
+            string vrcorev10 = "";
             string vrubrainv51 = "";
             string vrubrainv52 = "";
-            string vrgimbalv20 = "";
-            string vrugimbalv11 = "";
             string name = "";
             string desc = "";
             int k_format_version = 0;
@@ -233,6 +231,9 @@ namespace MissionPlanner.Utilities
                             case "urlpx4v2":
                                 px4v2 = xmlreader.ReadString();
                                 break;
+                            case "urlpx4v4":
+                                px4v4 = xmlreader.ReadString();
+                                break;
                             case "urlvrbrainv40":
                                 vrbrainv40 = xmlreader.ReadString();
                                 break;
@@ -248,20 +249,14 @@ namespace MissionPlanner.Utilities
                             case "urlvrbrainv52":
                                 vrbrainv52 = xmlreader.ReadString();
                                 break;
-                            case "urlvrherov10":
-                                vrherov10 = xmlreader.ReadString();
+                            case "urlvrcorev10":
+                                vrcorev10 = xmlreader.ReadString();
                                 break;
                             case "urlvrubrainv51":
                                 vrubrainv51 = xmlreader.ReadString();
                                 break;
                             case "urlvrubrainv52":
                                 vrubrainv52 = xmlreader.ReadString();
-                                break;
-                            case "urlvrgimbalv20":
-                                vrgimbalv20 = xmlreader.ReadString();
-                                break;
-                            case "urlvrugimbalv11":
-                                vrugimbalv11 = xmlreader.ReadString();
                                 break;
                             case "name":
                                 name = xmlreader.ReadString();
@@ -282,16 +277,15 @@ namespace MissionPlanner.Utilities
                                     temp.url2560_2 = url2560_2;
                                     temp.urlpx4v1 = px4;
                                     temp.urlpx4v2 = px4v2;
+                                    temp.urlpx4v4 = px4v4;
                                     temp.urlvrbrainv40 = vrbrainv40;
                                     temp.urlvrbrainv45 = vrbrainv45;
                                     temp.urlvrbrainv50 = vrbrainv50;
                                     temp.urlvrbrainv51 = vrbrainv51;
                                     temp.urlvrbrainv52 = vrbrainv52;
-                                    temp.urlvrherov10 = vrherov10;
+                                    temp.urlvrcorev10 = vrcorev10;
                                     temp.urlvrubrainv51 = vrubrainv51;
                                     temp.urlvrubrainv52 = vrubrainv52;
-                                    temp.urlvrgimbalv20 = vrgimbalv20;
-                                    temp.urlvrugimbalv11 = vrugimbalv11;
                                     temp.k_format_version = k_format_version;
 
                                     try
@@ -328,16 +322,15 @@ namespace MissionPlanner.Utilities
                                 url2560_2 = "";
                                 px4 = "";
                                 px4v2 = "";
+                                px4v4 = "";
                                 vrbrainv40 = "";
                                 vrbrainv45 = "";
                                 vrbrainv50 = "";
                                 vrbrainv51 = "";
                                 vrbrainv52 = "";
-                                vrherov10 = "";
+                                vrcorev10 = "";
                                 vrubrainv51 = "";
                                 vrubrainv52 = "";
-                                vrgimbalv20 = "";
-                                vrugimbalv11 = "";
                                 name = "";
                                 desc = "";
                                 k_format_version = 0;
@@ -433,6 +426,7 @@ namespace MissionPlanner.Utilities
                 updateProgress(-1, Strings.GettingFWVersion);
 
                 WebRequest wr = WebRequest.Create(url);
+                wr.Timeout = 10000;
                 WebResponse wresp = wr.GetResponse();
 
                 StreamReader sr = new StreamReader(wresp.GetResponseStream());
@@ -494,37 +488,6 @@ namespace MissionPlanner.Utilities
                     return false;
                 }
 
-                int apmformat_version = -1; // fail continue
-
-                if (board != BoardDetect.boards.px4 && board != BoardDetect.boards.px4v2 &&
-                    board != BoardDetect.boards.vrbrainv40 && board != BoardDetect.boards.vrbrainv45 &&
-                    board != BoardDetect.boards.vrbrainv50 && board != BoardDetect.boards.vrbrainv51 &&
-                    board != BoardDetect.boards.vrbrainv52 && board != BoardDetect.boards.vrherov10 &&
-                    board != BoardDetect.boards.vrubrainv51 && board != BoardDetect.boards.vrubrainv52 &&
-                    board != BoardDetect.boards.vrgimbalv20 && board != BoardDetect.boards.vrugimbalv11)
-                {
-                    try
-                    {
-                        apmformat_version = BoardDetect.decodeApVar(comport, board);
-                    }
-                    catch
-                    {
-                    }
-
-                    if (apmformat_version != -1 && apmformat_version != temp.k_format_version)
-                    {
-                        if (DialogResult.No ==
-                            CustomMessageBox.Show(Strings.EppromChanged,
-                                String.Format(Strings.EppromFormatChanged, apmformat_version, temp.k_format_version),
-                                MessageBoxButtons.YesNo))
-                        {
-                            CustomMessageBox.Show(Strings.PleaseConnectAndBackupConfig);
-                            return false;
-                        }
-                    }
-                }
-
-
                 log.Info("Detected a " + board);
 
                 updateProgress(-1, Strings.DetectedA + board);
@@ -550,6 +513,10 @@ namespace MissionPlanner.Utilities
                 {
                     baseurl = temp.urlpx4v2.ToString();
                 }
+                else if (board == BoardDetect.boards.px4v4)
+                {
+                    baseurl = temp.urlpx4v4.ToString();
+                }
                 else if (board == BoardDetect.boards.vrbrainv40)
                 {
                     baseurl = temp.urlvrbrainv40.ToString();
@@ -570,9 +537,9 @@ namespace MissionPlanner.Utilities
                 {
                     baseurl = temp.urlvrbrainv52.ToString();
                 }
-                else if (board == BoardDetect.boards.vrherov10)
+                else if (board == BoardDetect.boards.vrcorev10)
                 {
-                    baseurl = temp.urlvrherov10.ToString();
+                    baseurl = temp.urlvrcorev10.ToString();
                 }
                 else if (board == BoardDetect.boards.vrubrainv51)
                 {
@@ -581,14 +548,6 @@ namespace MissionPlanner.Utilities
                 else if (board == BoardDetect.boards.vrubrainv52)
                 {
                     baseurl = temp.urlvrubrainv52.ToString();
-                }
-                else if (board == BoardDetect.boards.vrgimbalv20)
-                {
-                    baseurl = temp.urlvrgimbalv20.ToString();
-                }
-                else if (board == BoardDetect.boards.vrugimbalv11)
-                {
-                    baseurl = temp.urlvrugimbalv11.ToString();
                 }
                 else
                 {
@@ -619,46 +578,53 @@ namespace MissionPlanner.Utilities
                 request.Method = "GET";
                 // Get the request stream.
                 Stream dataStream; //= request.GetRequestStream();
-                // Get the response.
-                WebResponse response = request.GetResponse();
-                // Display the status.
-                log.Info(((HttpWebResponse) response).StatusDescription);
-                // Get the stream containing content returned by the server.
-                dataStream = response.GetResponseStream();
-
-                long bytes = response.ContentLength;
-                long contlen = bytes;
-
-                byte[] buf1 = new byte[1024];
-
-                FileStream fs =
-                    new FileStream(
-                        Path.GetDirectoryName(Application.ExecutablePath) + Path.DirectorySeparatorChar +
-                        @"firmware.hex", FileMode.Create);
-
-                updateProgress(0, Strings.DownloadingFromInternet);
-
-                dataStream.ReadTimeout = 30000;
-
-                while (dataStream.CanRead)
+                // Get the response (using statement is exception safe)
+                using (WebResponse response = request.GetResponse())
                 {
-                    try
+                    // Display the status.
+                    log.Info(((HttpWebResponse)response).StatusDescription);
+                    // Get the stream containing content returned by the server.
+                    using (dataStream = response.GetResponseStream())
                     {
-                        updateProgress(50, Strings.DownloadingFromInternet);
-                    }
-                    catch
-                    {
-                    }
-                    int len = dataStream.Read(buf1, 0, 1024);
-                    if (len == 0)
-                        break;
-                    bytes -= len;
-                    fs.Write(buf1, 0, len);
-                }
 
-                fs.Close();
-                dataStream.Close();
-                response.Close();
+                        long bytes = response.ContentLength;
+                        long contlen = bytes;
+
+                        byte[] buf1 = new byte[1024];
+
+                        using (FileStream fs = new FileStream(
+                                Path.GetDirectoryName(Application.ExecutablePath) + Path.DirectorySeparatorChar +
+                                @"firmware.hex", FileMode.Create))
+                        {
+                            updateProgress(0, Strings.DownloadingFromInternet);
+
+                            long length = response.ContentLength;
+                            long progress = 0;
+                            dataStream.ReadTimeout = 30000;
+
+                            while (dataStream.CanRead)
+                            {
+                                try
+                                {
+                                    updateProgress(length == 0 ? 50 : (int)((progress * 100) / length), Strings.DownloadingFromInternet);
+                                }
+                                catch
+                                {
+                                }
+                                int len = dataStream.Read(buf1, 0, 1024);
+                                if (len == 0)
+                                    break;
+                                progress += len;
+                                bytes -= len;
+                                fs.Write(buf1, 0, len);
+                            }
+
+                            fs.Close();
+                        }
+                        dataStream.Close();
+                    }
+                    response.Close();
+                }
 
                 updateProgress(100, Strings.DownloadedFromInternet);
                 log.Info("Downloaded");
@@ -703,7 +669,7 @@ namespace MissionPlanner.Utilities
         /// upload to px4 standalone
         /// </summary>
         /// <param name="filename"></param>
-        public bool UploadPX4(string filename)
+        public bool UploadPX4(string filename, BoardDetect.boards board)
         {
             Uploader up;
             updateProgress(0, "Reading Hex File");
@@ -723,7 +689,6 @@ namespace MissionPlanner.Utilities
                 // check if we are seeing heartbeats
                 MainV2.comPort.BaseStream.Open();
                 MainV2.comPort.giveComport = true;
-                BoardDetect.boards board = BoardDetect.DetectBoard(MainV2.comPortName);
 
                 if (MainV2.comPort.getHeartBeat().Length > 0)
                 {
@@ -847,7 +812,7 @@ namespace MissionPlanner.Utilities
         /// upload to vrbrain standalone
         /// </summary>
         /// <param name="filename"></param>
-        public bool UploadVRBRAIN(string filename)
+        public bool UploadVRBRAIN(string filename, BoardDetect.boards board)
         {
             px4uploader.Uploader up;
             updateProgress(0, "Reading Hex File");
@@ -867,7 +832,6 @@ namespace MissionPlanner.Utilities
                 // check if we are seeing heartbeats
                 MainV2.comPort.BaseStream.Open();
                 MainV2.comPort.giveComport = true;
-                BoardDetect.boards board = BoardDetect.DetectBoard(MainV2.comPortName);
 
                 if (MainV2.comPort.getHeartBeat().Length > 0)
                 {
@@ -1013,11 +977,11 @@ namespace MissionPlanner.Utilities
         /// <param name="board"></param>
         public bool UploadFlash(string comport, string filename, BoardDetect.boards board)
         {
-            if (board == BoardDetect.boards.px4 || board == BoardDetect.boards.px4v2)
+            if (board == BoardDetect.boards.px4 || board == BoardDetect.boards.px4v2 || board == BoardDetect.boards.px4v4)
             {
                 try
                 {
-                    return UploadPX4(filename);
+                    return UploadPX4(filename, board);
                 }
                 catch (MissingFieldException)
                 {
@@ -1028,11 +992,10 @@ namespace MissionPlanner.Utilities
 
             if (board == BoardDetect.boards.vrbrainv40 || board == BoardDetect.boards.vrbrainv45 ||
                 board == BoardDetect.boards.vrbrainv50 || board == BoardDetect.boards.vrbrainv51 ||
-                board == BoardDetect.boards.vrbrainv52 || board == BoardDetect.boards.vrherov10 ||
-                board == BoardDetect.boards.vrubrainv51 || board == BoardDetect.boards.vrubrainv52 ||
-                board == BoardDetect.boards.vrgimbalv20 || board == BoardDetect.boards.vrugimbalv11)
+                board == BoardDetect.boards.vrbrainv52 || board == BoardDetect.boards.vrcorev10 ||
+                board == BoardDetect.boards.vrubrainv51 || board == BoardDetect.boards.vrubrainv52)
             {
-                return UploadVRBRAIN(filename);
+                return UploadVRBRAIN(filename, board);
             }
 
             byte[] FLASH = new byte[1];
